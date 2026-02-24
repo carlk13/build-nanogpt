@@ -7,8 +7,8 @@ from torch.nn import functional as F
 
 class CausalSelfAttention(nn.Module):
     def __init__(self, config):
-        super().__init__
-        assert config.n_embd % config.n._head == 0
+        super().__init__()
+        assert config.n_embd % config.n_head == 0
         # key, query, value projections for all heads, but in a batch
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)
         # output projection
@@ -38,8 +38,8 @@ class CausalSelfAttention(nn.Module):
 class MLP(nn.Module):
 
     def __init__(self, config):
-        super().__init__
-        self.c_fc   = nn.Liear(config.n_embd, 4 * config.n_embd)
+        super().__init__()
+        self.c_fc   = nn.Linear(config.n_embd, 4 * config.n_embd)
         self.gelu   = nn.GELU(approximate='tanh')
         self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd)
 
@@ -53,10 +53,10 @@ class MLP(nn.Module):
 class Block(nn.Module):
 
     def __init__(self, config):
-        super().__init__
+        super().__init__()
         self.ln_1 = nn.LayerNorm(config.n_embd)
         self.attn = CausalSelfAttention(config)
-        self.ln_2 = nn.Linear(config.n_embd)
+        self.ln_2 = nn.LayerNorm(config.n_embd)
         self.mlp = MLP(config)
 
     def forward(self, x):
@@ -68,7 +68,7 @@ class Block(nn.Module):
 @dataclass
 class GPTConfig:
     block_size: int = 1024  # max sequence len
-    cocab_size: int = 50257 # number of tokens: 50,000 BPE merges + 256 bytes tokens + 1 <|endoftoken|>
+    vocab_size: int = 50257 # number of tokens: 50,000 BPE merges + 256 bytes tokens + 1 <|endoftoken|>
     n_layer: int = 12       # num of layers
     n_head: int = 12        # num of heads
     n_embd: int = 768       # embedding dimension
@@ -76,13 +76,13 @@ class GPTConfig:
 class GPT(nn.Module):
 
     def __init__(self, config):
-        super().__init__
+        super().__init__()
         self.config = config
 
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.n_embd),   # Token / output embeddings
             wpe = nn.Embedding(config.block_size, config.n_embd),   # Positional Encodings
-            h = nn.ModuleList[Block(config for _ in range(config.n_layer))],
+            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = nn.LayerNorm(config.n_embd),
         ))
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
@@ -135,3 +135,7 @@ class GPT(nn.Module):
                     sd[k].copy_(sd_hf[k])
 
         return model
+
+
+model = GPT.from_pretrained('gpt2')
+print("didn't crash you!")
